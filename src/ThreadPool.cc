@@ -24,20 +24,20 @@ void ThreadPool::Routine()
 {
 	while (true)
 	{
-		std::unique_lock lock(rw_lock);
-		task_waiter.wait(rw_lock, [this] { 
-			return terminated || !tasks_queue.empty(); 
-		});
+		std::function<void ()>  task;
+		{
+			write_lock _(rw_lock);
+			task_waiter.wait(rw_lock, [this] {
+				return terminated || !tasks_queue.empty(); 
+			});
 
-		if (terminated && tasks_queue.empty()) {
-			return;
+			if (terminated && tasks_queue.empty()) {
+				return;
+			}
+
+			task = tasks_queue.front();
+			tasks_queue.pop();
 		}
-
-		auto task = tasks_queue.front();
-		tasks_queue.pop();
-
-		lock.unlock();
-
 		task();
 	}
 }
