@@ -32,8 +32,3 @@ Run the InvertedIndex with Server:
  ```bash
 ./bin/InvertedIndex
 ```
-
-Launch the Client:
- ```bash
-./bin/Client
-```
