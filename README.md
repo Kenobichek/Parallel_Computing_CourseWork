@@ -8,13 +8,13 @@ This project implements an inverted index system with parallel processing using 
 ## Build Instructions
 
 1. Clone the repository:
-
     ```bash
     git clone git@github.com:Kenobichek/Parallel_Computing_CourseWork.git
     ```
+    
 2. Create a build directory:
-    ```bash
-    mkdir build
+	```bash
+	mkdir build
 	cd build
 	```
 3. Configure the project with CMake:
@@ -28,7 +28,7 @@ This project implements an inverted index system with parallel processing using 
 
 ## Usage
 
-Run the InvertedIndex executable:
-	```bash
-	./bin/InvertedIndex
-	```
+Run the InvertedIndex with Server:
+ ```bash
+./bin/InvertedIndex
+```
