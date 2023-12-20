@@ -1,22 +1,37 @@
-#include <boost/asio.hpp>
 #include <iostream>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
 
-using boost::asio::ip::tcp;
+namespace asio = boost::asio;
+namespace beast = boost::beast;
+namespace http = boost::beast::http;
+namespace websocket = boost::beast::websocket;
 
-class Server {
+class WebSocketSession : public std::enable_shared_from_this<WebSocketSession> {
 	public:
-		Server(boost::asio::io_context& io_context, short port)
-			: acceptor(io_context, tcp::endpoint(tcp::v4(), port)),
+		WebSocketSession(asio::ip::tcp::socket&& socket)
+			: ws(std::move(socket)) {}
+
+		void Start();
+		void Read();
+		void Write();
+
+	private:
+		websocket::stream<asio::ip::tcp::socket> ws;
+		beast::flat_buffer buffer;
+};
+
+class WebSocketServer {
+	public:
+		WebSocketServer(asio::io_context& io_context, short port)
+			: acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
 			socket(io_context) {
 			HandleClient();
 		}
 
 	private:
-		void Read();
-		void Write();
-		void HandleClient();
+		asio::ip::tcp::acceptor acceptor;
+		asio::ip::tcp::socket socket;
 
-		tcp::acceptor acceptor;
-		tcp::socket socket;
-		boost::asio::streambuf receive_buffer;
+		void HandleClient();
 };

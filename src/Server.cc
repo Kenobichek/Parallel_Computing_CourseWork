@@ -1,41 +1,43 @@
 #include "Server.h"
 
-void Server::Read() {
-	boost::asio::async_read_until(
-		socket,
-		receive_buffer,
-		'\n',
-		[this](const boost::system::error_code& ec, std::size_t bytes_transferred) {
-			if (!ec) {
-				std::istream is(&receive_buffer);
-				std::string received_data;
-				std::getline(is, received_data);
-				std::cout << "Received from client:: " << received_data << std::endl;
-				socket.close();
-			} else {
-				std::cerr << "Error reading from client: " << ec.message() << std::endl;
-			}
+void WebSocketServer::HandleClient() {
+	acceptor.async_accept(socket, [this](const beast::error_code& ec) {
+		if (!ec) {
+			std::cout << "Client connected!" << std::endl;
+			std::make_shared<WebSocketSession>(std::move(socket))->Start();
 		}
-	);
+		HandleClient();
+	});
 }
 
-
-void Server::Write() {
-	std::string message = "Hello Client!!!\n";
-	boost::asio::write(socket, boost::asio::buffer(message));
+void WebSocketSession::Start() {
+	ws.async_accept([self = shared_from_this()](const beast::error_code& ec) {
+		if (!ec) {
+			self->Read();
+		}
+	});
 }
 
+void WebSocketSession::Read() {
+	ws.async_read(buffer, [self = shared_from_this()](const beast::error_code& ec, std::size_t) {
+		if (!ec) {
+			std::string received_data(beast::buffers_to_string(self->buffer.data()));
+			std::cout << "Received from client: " << received_data << std::endl;
 
-void Server::HandleClient() {
-	acceptor.async_accept(
-		socket,
-		[this](const boost::system::error_code& ec) {
-			if (!ec) {
-				std::cout << "Client connected!" << std::endl;
-				Write();
-				Read();
-			}
-			HandleClient();
+			self->Write();
+		} 
+		else {
+				std::cerr << "Error reading WebSocket frame: " << ec.message() << std::endl;
 		}
-	);
+	});
+}
+
+void WebSocketSession::Write() {
+	std::string message = "Hello Client!!!";
+	ws.text(true);
+	ws.async_write(asio::buffer(message), [self = shared_from_this()](const beast::error_code& ec, std::size_t) {
+			if (ec) {
+					std::cerr << "Error writing WebSocket frame: " << ec.message() << std::endl;
+			}
+	});
 }
