@@ -20,6 +20,7 @@ class ThreadPool
 		void Terminate(const bool should_finish_tasks = true);
 		void Routine();
 		bool WorkingUnsafe() const;
+		int GetThreadCount() const;
 
 	private:
 		mutable read_write_lock rw_lock;

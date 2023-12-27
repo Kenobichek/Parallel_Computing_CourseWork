@@ -1,14 +1,34 @@
 #include "InvertedIndex.h"
 #include <iostream>
 
-void InvertedIndex::AddWord(const std::string& word, const std::filesystem::path& filepath) {
+void InvertedIndex::AddWords(const std::unordered_set<std::string>& words, const std::filesystem::path& filepath) {
 	write_lock _(rw_lock);
-	auto it = inverted_index.find(word);
-	if (it != inverted_index.end()) {
-		it->second.push_back(filepath);
-	} 
-	else {
-		inverted_index.insert({word, {filepath}});
+	for(auto& word : words) {
+		auto it = inverted_index.find(word);
+		if (it != inverted_index.end()) {
+			it->second.insert(filepath);
+		} 
+		else {
+			inverted_index.insert({word, {filepath}});
+		}
+	}
+}
+
+void InvertedIndex::Merge(InvertedIndex&& source_inverted_index) {
+	write_lock _(rw_lock);
+	if (inverted_index.empty()) {
+		inverted_index = std::move(source_inverted_index.inverted_index);
+		return;
+	}
+
+	for (auto& [word, files] : source_inverted_index.inverted_index) {
+		auto it = inverted_index.find(word);
+		if (it != inverted_index.end()) {
+			it->second.merge(std::move(files));
+		} 
+		else {
+			inverted_index.insert({ std::move(word), std::move(files) });
+		}
 	}
 }
 

@@ -86,3 +86,8 @@ bool ThreadPool::WorkingUnsafe() const
 {
 	return initialized && !terminated;
 }
+
+int ThreadPool::GetThreadCount() const
+{
+	return threads.size();
+}

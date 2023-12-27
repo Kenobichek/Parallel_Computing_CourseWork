@@ -4,44 +4,57 @@
 #include <iostream>
 #include "FileScanner.h"
 
-void FileScanner::ProcessFolder() {
-	int tasks_count = 0;
-	for (const auto& entry : std::filesystem::directory_iterator(folder_path)) {
-		if (entry.is_regular_file()) {
-			thread_pool.AddTask([this, entry, &tasks_count]() {
-				ProcessFile(entry.path());
-				{
-					write_lock _(rw_lock);
-					--tasks_count;
-				}
-				termination_cv.notify_one();
-			});
-			{
-				write_lock _(rw_lock);
-				++tasks_count;
+
+void FileScanner::ParallelFileProcessing() {
+	Paths paths;
+	ProcessFolder(folder_path, paths);
+	int thread_number = thread_pool.GetThreadCount();
+	std::vector<InvertedIndex> inverted_indexes(thread_number);
+	int start_i = 0;
+	int chunk_size = paths.size() / thread_number;
+	int remaining_size = paths.size() % thread_number;
+
+	for(auto& idx : inverted_indexes) {
+		int end_i = start_i == 0 ? chunk_size + remaining_size : chunk_size;
+		end_i += start_i;
+		thread_pool.AddTask([this, &paths, &idx, start_i, end_i]() {
+			for (int i = start_i; i < end_i; i++) {
+				ProcessFile(paths[i], idx);
 			}
-		}
+		});
+		start_i = end_i;
 	}
 
-	write_lock lock(rw_lock);
+	thread_pool.Terminate(true);
 
-	termination_cv.wait(rw_lock, [&tasks_count] {
-		return !tasks_count; 
-	});
+	for (auto& idx : inverted_indexes) {
+		inverted_index.Merge(std::move(idx));
+	}
 }
 
+void FileScanner::ProcessFolder(const std::filesystem::path& current_path, Paths& paths) {
+	for (const auto& entry : std::filesystem::directory_iterator(current_path)) {
+		if (entry.is_regular_file()) {
+			paths.push_back(entry.path());
+		}
+		else if (entry.is_directory()) {
+			ProcessFolder(entry.path(), paths);
+		}
+	}
+}
 
-void FileScanner::ProcessFile(const std::filesystem::path& filepath) {
+void FileScanner::ProcessFile(const std::filesystem::path& filepath, InvertedIndex& idx) {
 	std::ifstream file(filepath);
 	if (!file.is_open()) {
 		std::cout << "Failed to open file: " << filepath << std::endl;
 		return;
 	}
 
+	std::unordered_set<std::string> words;
 	std::string word;
 	while (file >> word) {
-		inverted_index.AddWord(word, filepath);
+		words.emplace(word);
 	}
-
+	idx.AddWords(words, filepath);
 	file.close();
 }
