@@ -1,6 +1,4 @@
 #include "Server.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 void WebSocketServer::HandleClient() {
 	acceptor.async_accept(socket, [this](const beast::error_code& ec) {

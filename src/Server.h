@@ -3,6 +3,8 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include "InvertedIndex.h"
 
 namespace asio = boost::asio;

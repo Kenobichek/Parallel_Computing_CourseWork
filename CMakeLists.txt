@@ -14,3 +14,4 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
+configure_file(./Config.json ${CMAKE_BINARY_DIR}/bin/Config.json COPYONLY)
